@@ -1,0 +1,47 @@
+
+@startuml
+actor "Оператор безопасности" as SActor
+actor "Оператор-технолог" as TActor
+participant "Блок управления\n обновлением ПО" as CUpdateMgr
+participant "Блок записи обновления\n ПО компонента" as CUpdateUploader
+participant "Блок загрузки\n обновления ПО" as CUpdateDownloader #red
+participant "Локальное хранилище\n обновления ПО" as CUpdateLocalStorage
+participant "Блок проверки\n подписи" as CDataVerifySign
+participant "Обновляемый компонент.\n Исходный код." as CUpdatedExe
+participant "Блок доверенного\n времени" as CTime
+participant "Внешнее хранилище\n обновлений ПО" as CUpdateRemoteStorage
+
+TActor -> CUpdateMgr : авторизация
+SActor -> CUpdateMgr : авторизация
+
+SActor -> CUpdateRemoteStorage : подготовка обновления
+SActor -> CUpdateMgr : команда обновления
+CUpdateMgr -> CUpdateDownloader : команда загрузки\n обновлений
+CUpdateDownloader -> CUpdateRemoteStorage : запрос загрузки обновлений
+CUpdateDownloader <- CUpdateRemoteStorage : данные обновления
+CUpdateDownloader -[#red]> CUpdateDownloader : <color #red>Применение ранее\n <color #red>использованных обновлений
+CUpdateDownloader -> CUpdateLocalStorage : запись измененных обновлений в\n локальное хранилище
+CUpdateDownloader -> CUpdateMgr : сообщение о завершении записи обновлений
+CUpdateMgr -> CUpdateUploader : команда записи\n обновлений
+CUpdateUploader -> CDataVerifySign : Запрос проверки подписи обновлений
+alt #lightgreen Подтверждение подписи
+  CUpdateUploader <- CDataVerifySign : Подтверждение подписи
+  note right
+    Проверка подписи для хранящихся старых обновлений завершится успешно 
+    Целостность обновлений у обновляемого компонента не нарушена
+    Версия обновлений компонента при этом неактуальна
+  end note
+  CUpdateUploader -> CUpdatedExe : Запись обновлений и обновление
+  CUpdateUploader -> CUpdateMgr : Сообщение о завершении\n записи обновлений
+  CUpdateMgr -> SActor : Сообщение об успешном обновлении
+else #white Нарушение подписи
+  CUpdateUploader <- CDataVerifySign : Нарушение подписи
+  CUpdateUploader -> CUpdateUploader : Тревога.\n Нарушение целостности.
+  CUpdateUploader -> CUpdateMgr : Сообщение о нарушении\n целостности
+  CUpdateMgr -> SActor : Сообщение о нарушении\n целостности
+end
+
+SActor -> CUpdateMgr : завершение работы
+TActor -> CUpdateMgr : завершение работы
+
+@enduml

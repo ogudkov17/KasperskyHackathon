@@ -1,0 +1,79 @@
+
+@startuml
+participant "Датчики" as CGauge
+participant "Блок получения\n данных от датчиков" as CDataInput
+participant "Блок обработки\n данных" as CDataProc #red
+participant "Блок доверенного\n времени" as CTime
+participant "Блок подписи" as CDataSign
+participant "Блок проверки\n подписи" as CDataVerifySign
+participant "Блок порогового\n сравнения" as CDataComparator
+participant "Блок передачи\n данных" as CDataOutput
+participant "СУЗ" as CProtection
+participant "АСУ ТП" as CSCADA
+
+
+CGauge -> CDataInput : Передача показаний датчиков
+CDataInput -> CTime : Запрос метки времени
+CDataInput <- CTime : Получение метки времени
+CDataInput -> CDataInput : Добавление к данным\n метки времени
+CDataInput -> CDataSign : Запрос подписи данных с меткой времени
+CDataInput <- CDataSign : Подписанные данные с меткой времени
+CDataInput -> CDataProc : Передача подписанных данных\n в блок обработки
+CDataProc -[#red]> CDataProc : <color #red>Передача старых данных
+CDataProc -> CDataComparator : Передача данных в блок порогового сравнения
+group Работа с данными в интересах СУЗ
+  CDataComparator -> CDataVerifySign : Запрос проверки подписи\n полученных данных
+  CDataComparator -> CTime : Запрос времени
+  CDataComparator <- CTime : Доверенное время
+  CDataComparator -> CDataComparator : Получение идентификатора сообщения
+  alt Подтверждена подпись, идентификатор и временная метка
+    CDataComparator <- CDataVerifySign : Подпись подтверждена
+    CDataComparator -> CTime : Получение метки времени
+    CDataComparator -> CDataComparator : Сравнение с пороговым значением
+    alt Нормальный режим
+      CDataComparator -> CDataComparator : Создание сообщения о нормальном\n режиме работы с меткой времени
+    else Превышение порога 
+      CDataComparator -> CDataComparator : Создание сообщения о превышении\n порога с меткой времени
+    end
+    CDataComparator -> CDataSign : Запрос подписи сообщения с меткой времени
+    CDataComparator <- CDataSign : Подписанное сообщение
+    CDataComparator -> CProtection : Отправка подписанного сообщения в СУЗ
+    group #lightgrey Внешняя по отношению к\n УД работа СУЗ
+      CProtection -> CDataVerifySign : Запрос проверки подписи полученных данных
+      CProtection -> CTime : Запрос времени
+      CProtection <- CTime : Доверенное время
+      CProtection -> CProtection : Получение идентификатора сообщения
+      alt Подтверждена подпись, идентификатор и временная метка
+        CProtection <- CDataVerifySign : Подпись подтверждена
+        CProtection -> CProtection : Управление согласно\n значению в сообщении
+      else Нарушена подпись, идентификатор или временная метка
+        CProtection <- CDataVerifySign : Подпись нарушена
+        CProtection -> CProtection : Тревога.\n Нарушение целостности
+      end
+    end
+  else #red Нарушение подписи, идентификатора или временной метки
+    CDataComparator <- CDataVerifySign : Подпись нарушена
+    CDataComparator -> CDataComparator : Тревога.\n Нарушение целостности
+  end
+ 
+end
+CDataProc -> CDataProc : Возможное обогащение данных\n без изменения\n подписанной части
+CDataProc -[#red]> CDataProc : <color #red>Передача старых данных
+CDataProc -> CDataOutput : Передача обогащенных данных и подписанной части в блок передачи
+CDataOutput -> CDataOutput : Формирование данных для передачи\n в АСУ ТП без изменения\n подписанной части
+CDataOutput -> CSCADA : Передача сформированных данных в АСУ ТП
+group #lightgrey Внешняя по отношению к УД\n диаграмма работы АСУ ТП
+  CSCADA -> CDataVerifySign : Запрос проверки подписи полученных данных
+  CSCADA -> CTime : Запрос времени
+  CSCADA <- CTime : Доверенное время
+  CSCADA -> CSCADA : Получение идентификатора\n сообщения
+  alt Подтверждена подпись,\n идентификатор и временная метка
+    CSCADA <- CDataVerifySign : Подпись подтверждена
+    CSCADA -> CSCADA : Управление согласно\n значению в сообщении
+  else #red Нарушена подпись,\n идентификатор или временная метка
+    CSCADA <- CDataVerifySign : Подпись нарушена
+    CSCADA -> CSCADA : Тревога.\n Нарушение целостности
+  end
+end
+
+@enduml

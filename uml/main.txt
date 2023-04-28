@@ -1,0 +1,156 @@
+@startuml
+skinparam linetype ortho
+scale max 1024 width
+scale max 1024 height
+
+actor :Технолог: as TActor
+actor :Безопасник: as SActor
+
+() HTTP_raw #red
+package {
+  Component "Датчики" as CGauges
+HTTP_raw - CGauges
+}
+
+package "УД" {
+  frame "Обработка информации" {
+() HTTP_proc
+() HTTP_out
+    frame "Получение данных" {
+      Component "Блок получения\n данных от датчиков" as DI #red
+      () "Интерфейс получения обновлений\n блока получения данных" as IDataInputUpdate
+      Component "Блок обновления" as DI_Upd #red
+      DI_Upd - () IDataInputUpdate
+      () "Интерфейс получения конфигурации\n блока получения данных" as IDataInputConfig
+      Component "Блок конфигурации" as DI_Cfg #red
+      DI_Cfg - () IDataInputConfig
+    }
+    frame "Обработка данных" {
+      Component "Блок обработки\n данных" as DProc #red
+      () "Интерфейс получения обновлений\n блока обработки данных" as IDataProcUpdate
+      Component "Блок обновления" as DProc_Upd #red
+      DProc_Upd - () IDataProcUpdate
+      () "Интерфейс получения конфигурации\n блока обработки данных" as IDataProcConfig
+      Component "Блок конфигурации" as DProc_Cfg #red
+      DProc_Cfg - () IDataProcConfig
+    }
+    frame "Передача данных" {
+      Component "Блок передачи\n данных" as DOut #red
+      () "Интерфейс получения обновлений\n блока передачи данных" as IDataOutputUpdate
+      Component "Блок обновления" as DOut_Upd #red
+      DOut_Upd - () IDataOutputUpdate
+      () "Интерфейс получения конфигурации\n блока передачи данных" as IDataOutputConfig
+      Component "Блок конфигурации" as DOut_Cfg #red
+      DOut_Cfg - () IDataOutputConfig
+    }
+DI ..> () HTTP_raw : use
+DI ..> () HTTP_proc : use
+[DProc] - () HTTP_proc
+DProc ..> () HTTP_out : use
+[DOut] - () HTTP_out 
+  }
+  
+  /' Блоки обновления
+   -----------------------------------
+  '/
+  frame "Обновление ПО" {
+    Component "Блок управления\n обновлениями ПО" as CUpdMgr #red
+    CUpdMgr ..> () IUpdDownloadCmd : команда получения обновлений
+    CUpdMgr ..> () IDataInputUpdate : команда обновления
+    CUpdMgr ..> () IDataProcUpdate : команда обновления
+    CUpdMgr ..> () IDataOutputUpdate : команда обновления
+    CUpdMgr ..> () IVerifyUpd : проверка обновлений
+
+    () "Интерфейс проверки\n обновлений ПО" as IVerifyUpd
+    Component "Блок проверки\n обновлений ПО" as CUpdVerifier #red
+    CUpdVerifier - () IVerifyUpd
+
+    () "Интерфейс команды получения обновлений ПО" as IUpdDownloadCmd
+    Component "Блок получения\n обновлений ПО" as CUpdDownloader #red
+    CUpdDownloader - () IUpdDownloadCmd
+    CUpdDownloader ..> () IUpdWrite : записывает в
+  
+    () "Интерфейс записи обновления в хранилище" as IUpdWrite
+    Component "Хранилище\n обновлений ПО" as CUpdStorage #red
+    CUpdStorage - () IUpdWrite
+  }
+
+  frame "Обновление настроек" {
+    Component "Блок управления\n обновлениями настроек" as CCfgMgr #red
+    CCfgMgr ..> () ICfgDownloadCmd : команда получения обновлений
+    CCfgMgr ..> () IDataInputConfig : команда обновления
+    CCfgMgr ..> () IDataProcConfig : команда обновления
+    CCfgMgr ..> () IDataOutputConfig : команда обновления
+    CCfgMgr ..> () IVerifyCfg : проверка обновлений
+
+    () "Интерфейс проверки\n обновлений конфигурации" as IVerifyCfg
+    Component "Блок проверки\n обновлений" as CCfgVerifier #red
+    CCfgVerifier - () IVerifyCfg
+
+    () "Интерфейс команды получения обновлений конфигурации" as ICfgDownloadCmd
+    Component "Блок получения\n обновлений" as CCfgDownloader #red
+    CCfgDownloader - () ICfgDownloadCmd
+    CCfgDownloader ..> () ICfgWrite : записывает в
+
+    () "Интерфейс записи обновления конфигурации в хранилище" as ICfgWrite
+    Component "Хранилище обновлений" as CCfgStorage #red
+    CCfgStorage - () ICfgWrite
+  }
+
+}
+
+
+' Безопасник
+() "Интерфейс управления обновлениями ПО" as IUpd
+() "Интерфейс подтверждения операций обновления ПО" as IUpdConfirm
+CUpdMgr - () IUpd
+CUpdMgr - () IUpdConfirm
+SActor ..> () IUpd : команда загрузки обновлений ПО
+TActor ..> () IUpdConfirm : Подтверждает операции обновления ПО
+
+
+' Технолог
+() "Интерфейс управления обновлениями настроек" as ICfg
+() "Интерфейс подтверждения операций обновления конфигурации" as ICfgConfirm
+CCfgMgr - () ICfg
+CCfgMgr - () ICfgConfirm
+TActor ..> () ICfg : команда загрузки обновлений конфигурации
+SActor ..> () ICfgConfirm : Подтверждает операции обновления конфигурации
+
+DOut .d.> () HTTP_scada
+DOut .d.> () HTTP_protect
+
+() "Интерфейс получения\n данных АСУ ТП" as HTTP_scada #red
+package "АСУ ТП" {
+Component "Блок получения данных" as SCADAIn
+[SCADAIn] - ()HTTP_scada
+}
+
+() "Интерфейс получения данных СУЗ" as HTTP_protect #red
+package "СУЗ" {
+Component "Блок получения данных" as PROTECTIn
+() HTTP_protect -r- [PROTECTIn]
+}
+
+/' Хранилища обновлений
+-----------------------------------------
+'/
+() "Интерфейс получения обновлений ПО" as IUpdRead #red
+Component "Хранилище обновлений ПО" as CUpdOuterStorage
+CUpdOuterStorage - () IUpdRead
+CUpdDownloader ..> () IUpdRead : получает обновления
+
+() "Интерфейс получения обновлений конфигурации" as ICfgRead #red
+Component "Хранилище обновлений ПО" as CCfgOuterStorage
+CCfgOuterStorage - () ICfgRead
+CCfgDownloader ..> () ICfgRead : получает обновления
+
+/' Монитор безопасности
+------------------------------------------
+'/
+package {
+  () "Интерфейс брокера сообщений" as IMsgBroker #lightgreen
+  Component "Монитор безопасности" as SecMgr #lightgreen
+  SecMgr - () IMsgBroker
+}
+@enduml

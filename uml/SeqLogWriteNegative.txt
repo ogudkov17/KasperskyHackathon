@@ -1,0 +1,39 @@
+
+@startuml
+actor "Оператор-технолог" as TActor
+participant "Блок,\n передающий сообщения" as CAnyComponent
+participant "Блок получения\n сообщения" as CMsgInput
+participant "Хранилище\n сообщений" as CMsgLocalStorage #red
+participant "Блок доверенного\n времени" as CTime
+participant "Блок подписи" as CDataSign
+participant "Блок проверки\n подписи" as CDataVerifySign
+
+
+CAnyComponent --> CMsgInput: Запись некоторым компонентом сообщения в журнал
+CMsgInput --> CTime: Запрос временной метки
+CMsgInput <-- CTime: Выдача временной метки
+CMsgInput --> CMsgInput: Добавление к сообщению временной метки
+CMsgInput --> CDataSign: Запрос цифровой подписи сообщению с временной меткой
+CMsgInput <-- CDataSign: Подписанное сообщение с временной меткой
+CMsgLocalStorage -[#red]> CMsgLocalStorage : Изменение, удаление сообщений\n или их последовательности
+alt Проверка целостности дерева
+  CMsgInput <--> CMsgLocalStorage : Проверка целостности дерева
+  CMsgInput <--> CDataVerifySign : Проверка подписи
+  CMsgInput <--> CTime : проверка метки времени
+else #red Целостность дерева нарушена
+  CMsgInput --> CMsgInput : Тревога
+end
+CMsgLocalStorage -[#red]> CMsgLocalStorage : Изменение, удаление сообщений\n или их последовательности
+group Добавление нового подписанного сообщения в дерево
+  alt Проверка целостности используемых узлов
+    CMsgInput <--> CMsgLocalStorage : Добавлене нового подписанного сообщения в дерево
+    CMsgInput <--> CDataVerifySign : Проверка подписи
+    CMsgInput <--> CTime : проверка метки времени
+  else #red Целостность узлов нарушена
+    CMsgInput --> CMsgInput : Тревога
+  end
+end
+
+
+
+@enduml

@@ -1,0 +1,14 @@
+FROM python:3.8-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1
+
+ENV PYTHONUNBUFFERED=1
+
+COPY requirements.txt .
+RUN python -m pip install -r requirements.txt
+
+COPY CDataVerifySign /CDataVerifySign
+COPY config.ini /CDataVerifySign/
+
+WORKDIR /CDataVerifySign
+CMD ["python", "CDataVerifySign.py", "config.ini"]

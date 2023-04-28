@@ -1,0 +1,42 @@
+@startuml
+skinparam linetype ortho
+scale max 1024 width
+scale max 1024 height
+
+
+package {
+  Component "Датчики" as CGauges
+}
+
+package "УД" {
+  frame "Обработка информации" {
+
+    frame "Получение данных" {
+      Component "Блок получения\n данных от датчиков" as CDataInput #yellow
+    }
+    frame "Обработка данных" {
+      Component "Блок обработки\n данных" as CDataProc #lightgreen
+    }
+    frame "Передача данных" {
+      Component "Блок передачи\n данных" as CDataOutput #lightgreen
+    }
+    CDataInput --> CDataProc #green
+    CDataProc --> CDataOutput #green
+  }
+}
+CGauges --> CDataInput #red
+  
+
+
+package "АСУ ТП" {
+Component "Блок получения данных" as CSCADAIn
+}
+
+package "СУЗ" {
+Component "Блок получения данных" as CPROTECTIn
+}
+CDataOutput --> CSCADAIn #green
+CDataOutput --> CPROTECTIn #green
+
+
+@enduml

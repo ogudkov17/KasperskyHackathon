@@ -1,0 +1,12 @@
+CMsgInput --> CMsgLocalStorage: Запрос последней ветви дерева Меркла в хранилище
+CMsgInput <-- CMsgLocalStorage: Выдача последней ветви дерева Меркла
+loop для каждого узла ветви дерева Меркла
+  CMsgInput --> CDataVerifySign: Проверка подписи
+  alt "Подпись подтверждена
+    CDataVerifySign --> CMsgInput : Подпись подтверждена
+  else "Подпись нарушена"
+    CDataVerifySign --> CMsgInput : Подпись нарушена
+    CMsgInput --> CMsgInput: Тревога
+  end
+end
+

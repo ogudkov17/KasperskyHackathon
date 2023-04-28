@@ -1,0 +1,41 @@
+
+@startuml
+actor "Оператор безопасности" as SActor
+actor "Оператор-технолог" as TActor
+participant "Блок управления\n обновлением\n конфигурации" as CConfigMgr
+participant "Блок записи обновления\n конфигурации\n компонента" as CConfigUploader
+participant "Блок загрузки\n обновления\n конфигурации" as CConfigDownloader
+participant "Локальное хранилище\n обновления\n конфигурации" as CConfigLocalStorage
+participant "Блок проверки\n подписи" as CDataVerifySign
+participant "Обновляемый компонент.\n Хранилище\n конфигурации." as CConfigStorage
+participant "Блок доверенного\n времени" as CTime
+participant "Внешнее хранилище\n обновлений\n конфигурации" as CConfigRemoteStorage
+
+SActor -> CConfigMgr : авторизация
+TActor -> CConfigMgr : авторизация
+
+SActor -> CConfigRemoteStorage : подготовка обновления
+SActor -> CConfigMgr : команда обновления
+CConfigMgr -> CConfigDownloader : команда загрузки\n обновлений
+CConfigDownloader -> CConfigRemoteStorage : запрос загрузки обновлений
+CConfigDownloader <- CConfigRemoteStorage : данные обновления
+CConfigDownloader -> CConfigLocalStorage : запись обновлений в\n локальное хранилище
+CConfigDownloader -> CConfigMgr : сообщение о завершении записи обновлений
+CConfigMgr -> CConfigUploader : команда записи\n обновлений
+CConfigUploader -> CDataVerifySign : Запрос проверки подписи обновлений
+alt Подтверждение подписи
+  CConfigUploader <- CDataVerifySign : Подтверждение подписи
+  CConfigUploader -> CConfigStorage : Запись обновлений и обновление
+  CConfigUploader -> CConfigMgr : Сообщение о завершении\n записи обновлений
+  CConfigMgr -> SActor : Сообщение об успешном обновлении
+else Нарушение подписи
+  CConfigUploader <- CDataVerifySign : Нарушение подписи
+  CConfigUploader -> CConfigUploader : Тревога.\n Нарушение целостности.
+  CConfigUploader -> CConfigMgr : Сообщение о нарушении\n целостности
+  CConfigMgr -> SActor : Сообщение о нарушении\n целостности
+end
+
+TActor -> CConfigMgr : завершение работы
+SActor -> CConfigMgr : завершение работы
+
+@enduml

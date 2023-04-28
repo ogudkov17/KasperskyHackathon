@@ -1,0 +1,40 @@
+@startuml
+skinparam linetype ortho
+scale max 1024 width
+scale max 1024 height
+
+
+package {
+  Component "УЦ" as CCA #lightgreen
+}
+
+frame {
+  Component "Блок доверенного времени" as CTime #lightgreen
+}
+
+package "УД" {
+  frame  {
+    Component "Компонент, генерирующий сообщение" as CAnyComponent
+  }
+
+  frame "ЭЦП" {
+    Component "Блок проверки подписи" as CDataVerifySign #lightgreen
+    Component "Блок подписи" as CDataSign #lightgreen
+  }
+
+  
+  frame "Подсистема журналирования" {
+    Component "Блок получения сообщения" as CMsgInput #yellow
+    Component "Локальное хранилище\n сообщений" as CMsgLocalStorage #red
+  }
+  CAnyComponent --> CMsgInput #red
+  CMsgInput <--> CDataSign #green
+  CMsgInput <--> CTime #green
+  CMsgInput --> CMsgLocalStorage #green
+  CMsgInput <-- CMsgLocalStorage #red
+ 
+}
+
+CCA <... CDataSign
+CCA <... CDataVerifySign
+@enduml

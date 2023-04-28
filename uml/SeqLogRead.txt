@@ -1,0 +1,23 @@
+@startuml
+actor "Оператор-технолог" as TActor
+participant "Блок,\n передающий сообщения" as CAnyComponent
+participant "Блок получения\n сообщения" as CMsgInput
+participant "Хранилище\n сообщений" as CMsgLocalStorage
+participant "Блок доверенного\n времени" as CTime
+participant "Блок подписи" as CDataSign
+participant "Блок проверки\n подписи" as CDataVerifySign
+
+
+TActor --> CMsgLocalStorage : Запрос журнала
+TActor <-- CMsgLocalStorage : Получение дерева журнала
+alt Проверка целостности дерева
+  TActor <--> CMsgLocalStorage : Проверка целостности дерева
+  TActor <--> CDataVerifySign : Проверка подписи
+  TActor <--> CTime : проверка метки времени
+else Целостность дерева нарушена
+  TActor --> CMsgInput : Тревога
+end
+TActor --> TActor : Обработка сообщений
+
+
+@enduml

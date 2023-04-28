@@ -1,0 +1,78 @@
+@startuml
+skinparam linetype ortho
+scale max 1024 width
+scale max 1024 height
+
+actor "Оператор безопасности" as SActor
+actor "Оператор-технолог" as TActor
+
+
+package {
+  Component "УЦ" as CCA #lightgreen
+}
+
+frame {
+  Component "Блок доверенного времени" as CTime #lightgreen
+}
+
+frame {
+  Component "Внешнее хранилище\n обновлений ПО" as CUpdateRemoteStorage
+}
+
+frame {
+  Component "Внешнее хранилище\n обновлений конфигурации" as CConfigRemoteStorage
+}
+
+package "УД" {
+  frame "Компонент, требующий обновления" {
+    Component "Исполняемый код"  as CUpdatedExe
+    Component "Хранилище конфигурации" as CConfigStorage
+  }
+
+  frame "ЭЦП" {
+    Component "Блок проверки подписи" as CDataVerifySign #lightgreen
+  }
+
+  
+  frame "Обновление ПО" {
+    Component "Блок управления\n обновлением ПО" as CUpdateMgr #yellow
+    Component "Блок загрузки\n обновления ПО" as CUpdateDownloader #red
+    Component "Локальное хранилище\n обновления ПО" as CUpdateLocalStorage #red
+    Component "Блок записи обновления\n ПО компонента" as CUpdateUploader #yellow
+  }
+  SActor ----> CUpdateMgr : команда обновления
+  TActor ----> CUpdateMgr : подтверждение операции
+  CUpdateMgr --> CUpdateLocalStorage #green
+  CUpdateUploader <--> CDataVerifySign #green
+  CUpdateMgr <--> CUpdateDownloader #red
+  CUpdateMgr <--> CUpdateUploader #green
+  CUpdateDownloader --> CUpdateLocalStorage #red
+  CUpdateDownloader <--> CUpdateRemoteStorage #red
+  CUpdateUploader <--> CUpdateLocalStorage #red
+  CUpdateUploader ---> CUpdatedExe #green
+  CUpdateUploader <--> CTime #green
+  
+
+  frame "Обновление конфигурации" {
+    Component "Блок управления\n обновлением конфигурации" as CConfigMgr #yellow
+    Component "Блок загрузки\n обновления конфигурации" as CConfigDownloader #red
+    Component "Локальное хранилище\n обновления конфигурации" as CConfigLocalStorage #red
+    Component "Блок записи обновления\n конфигурации компонента" as CConfigUploader #yellow
+  }
+  TActor ----> CConfigMgr : команда обновления
+  SActor ----> CConfigMgr : подтверждение операции
+  CConfigMgr --> CConfigLocalStorage #green
+  CConfigUploader <--> CDataVerifySign #green
+  CConfigMgr <--> CConfigDownloader #red
+  CConfigMgr <--> CConfigUploader #green
+  CConfigDownloader --> CConfigLocalStorage #red
+  CConfigDownloader <--> CConfigRemoteStorage #red
+  CConfigUploader <--> CConfigLocalStorage #red
+  CConfigUploader ---> CConfigStorage #green
+  CConfigUploader <--> CTime #green
+
+}
+
+
+CCA <... CDataVerifySign
+@enduml

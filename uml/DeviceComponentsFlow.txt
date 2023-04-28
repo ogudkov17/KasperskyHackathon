@@ -1,0 +1,82 @@
+@startuml
+skinparam linetype ortho
+scale max 1024 width
+scale max 1024 height
+
+
+package {
+  Component "Датчики" as CGauges
+}
+
+package {
+  Component "УЦ" as CCA #lightgreen
+}
+
+frame {
+  Component "Блок доверенного времени" as CTime #lightgreen
+}
+
+
+package "УД" {
+  frame "Обработка информации" {
+
+    frame "Получение данных" {
+      Component "Блок получения\n данных от датчиков" as CDataInput #yellow
+    }
+    CDataInput --> CTime #green
+
+    frame "ЭЦП" {
+      Component "Блок подписи" as CDataSign #lightgreen
+      Component "Блок проверки подписи" as CDataVerifySign #lightgreen
+    }
+    CDataInput <-> CDataSign #green
+
+    frame "Обработка данных" {
+      Component "Блок порогового сравнения" as CComparator #yellow
+      Component "Блок обработки\n данных" as CDataProc #red
+      CDataProc --> CComparator #red
+    }
+    CComparator <-> CDataVerifySign #green
+    CComparator <-> CDataSign #green
+    CComparator --> CTime #green
+
+    frame "Передача данных" {
+      Component "Блок передачи\n данных" as CDataOutput #red
+    }
+    CDataInput --> CDataProc #green
+    CDataProc --> CDataOutput #red
+  }
+}
+CGauges --> CDataInput #red
+
+
+  
+
+
+package "АСУ ТП" {
+Component "Блок проверки подписи" as CSCADAVerifySign #lightgreen
+Component "Блок получения данных" as CSCADAIn #yellow
+Component "АСУ ТП" as CSCADANative
+CSCADAIn <-> CSCADAVerifySign #green
+}
+CSCADAIn --> CTime #green
+CSCADAIn --> CSCADANative #green
+
+package "СУЗ" {
+Component "Блок проверки подписи" as CProtectionVerifySign #lightgreen
+Component "Блок получения данных" as CProtectionIn #yellow
+Component "СУЗ" as CProtectionNative
+CProtectionIn <-> CProtectionVerifySign #green
+}
+CProtectionIn --> CTime #green
+CProtectionIn --> CProtectionNative #green
+
+CDataOutput --> CSCADAIn #red
+CComparator --> CProtectionIn #green
+
+CCA <... CDataSign
+CCA <... CDataVerifySign
+CCA <... CSCADAVerifySign
+CCA <... CProtectionVerifySign
+
+@enduml
